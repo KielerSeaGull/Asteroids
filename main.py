@@ -19,6 +19,9 @@ def main():
             if event.type == pygame.QUIT:
                 return
         screen.fill("black")
+        # updates PlayerPosition
+        player.update(dt)
+        #### player gets renderd
         player.draw(screen)
         pygame.display.flip()
         gameclock.tick(60)
