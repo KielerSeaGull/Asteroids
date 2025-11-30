@@ -4,49 +4,65 @@ from logger import log_state
 from player import *
 
 def main():
-    
+    pygame.init()
     print(f"Starting Asteroids with pygame version: {pygame.version.ver}")
     print(f"Screen width: {SCREEN_WIDTH}")
     print(f"Screen height: {SCREEN_HEIGHT}")
-    pygame.init()
-
+    
+    #Groups
     updatable = pygame.sprite.Group()
     drawable =pygame.sprite.Group()
-    # Create Player
-    player = Player(SCREEN_WIDTH/2, SCREEN_HEIGHT/2)   
 
-    #Background Picture
+    Player.containers = (updatable, drawable)   
+
+    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+    '''# Background
+    image = pygame.image.load('assets/background.png')
+    image = pygame.transform.scale(image, (SCREEN_WIDTH, SCREEN_HEIGHT))
+    Background(image, (drawable,))     # nur drawbar, nicht updatebar'''
+
+    #Background Picture Alternative 2
     # Load image
     image = pygame.image.load('assets/background.png')
     # Scale image
     scaled_image = pygame.transform.scale(image, (SCREEN_WIDTH, SCREEN_HEIGHT))
-    # Create display
-    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-    # Blit image to the display
-    screen.blit(scaled_image, (300, 250))
+    # Blit=> Zeichnet image to the display
+    screen.blit(scaled_image, (0, 0))
     # Update the display
     pygame.display.update()
 
+    # Create Player
+    player = Player(SCREEN_WIDTH/2, SCREEN_HEIGHT/2)   
+
+
+
     gameclock = pygame.time.Clock()
     dt: float = 0.0
+
     #Game-Loop
     while True:
         log_state()
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return
-        #screen.fill("black")
-        screen.blit(scaled_image, (0, 0))
-        #pygame.display.update()
-        # updates PlayerPosition
-        player.update(dt)
-        #### player gets renderd
-        player.draw(screen)
-        pygame.display.flip()
+    
         # wartet 1/60 Sekunde <==> bestcase: 60FPS (Grenze nach oben)
-        gameclock.tick(60)
         #Umrechnung von Millisek -> Sek
         dt = gameclock.tick(60)/1000
+
+        #updatet Positionen von allen Objekten
+        updatable.update(dt)
+
+         # Hintergrund zeichnen
+        screen.blit(scaled_image, (0, 0))
+
+        #Rendert die zu rendernden Objekte
+        for sprite in drawable:
+            sprite.draw(screen)
+
+        pygame.display.flip()
 
 
 if __name__ == "__main__":
