@@ -76,6 +76,16 @@ def main():
                 log_event("player_hit")
                 print("Game over!")
                 sys.exit()
+            for shot in shots:
+                if asteroid.collides_with(shot):
+                    log_event("asteroid_shot")
+                    if asteroid.get_lvl() > 1:
+                        log_event("asteroid_split")
+                        asteroid.split()
+                    else:
+                        asteroid.kill()
+                    shot.kill()
+
 
         pygame.display.flip()
 
