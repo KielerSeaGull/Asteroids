@@ -1,6 +1,7 @@
 import pygame
 from circleshape import CircleShape
-from constants import PLAYER_RADIUS, LINE_WIDTH, PLAYER_SPEED, PLAYER_TURN_SPEED
+from constants import PLAYER_RADIUS, SHOT_RADIUS, LINE_WIDTH, PLAYER_SPEED, PLAYER_TURN_SPEED, PLAYER_SHOT_SPEED
+from shot import Shot
 
 class Player(CircleShape):
     def __init__(self, x_pos: float, y_pos: float) -> None:
@@ -27,6 +28,12 @@ class Player(CircleShape):
          rotated_vector = unit_vector.rotate(self.rotation)
          rotated_vector_with_speed = rotated_vector * PLAYER_SPEED * delta_time
          self.position += rotated_vector_with_speed
+
+    def shoot(self):
+         shot = Shot(self.position[0], self.position[1], SHOT_RADIUS)
+         unit_vector = pygame.Vector2(0,1)
+         rotated_unit_v = unit_vector.rotate(self.rotation)
+         shot.velocity = rotated_unit_v * PLAYER_SHOT_SPEED
     
 # Key Binding- hier wird abgerufen was passieren soll, wenn der jeweilige 
 # Knopf gedrückt wird
@@ -44,3 +51,7 @@ class Player(CircleShape):
 
         if keys[pygame.K_s]:
             self.move(-dt)
+
+        if keys[pygame.K_SPACE]:
+             self.shoot()
+            
