@@ -1,5 +1,3 @@
-SCREEN_WIDTH: int= 1280
-SCREEN_HEIGHT: int = 720
 # Line-width of the Drawnobjects (Player, Astroid, Shot)
 LINE_WIDTH: int = 2
 

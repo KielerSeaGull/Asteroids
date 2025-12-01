@@ -30,7 +30,7 @@ class Asteroid(CircleShape):
                 # halbe linie nach unten und oben von centerhöhe zeichnen
                 # j in range(i,i+2) macht, dass wir immer auf der gleichen Höhe wie zuvor sind
                 for j in range(i,i+2):
-                    my_pos_y = center_y + (RENDER_LINE_HIGHT//2) * (-1)**j
+                    my_pos_y = center_y + ((self.get_lvl() * RENDER_LINE_HIGHT)//2) * (-1)**j
                     positions.append((my_pos_x, my_pos_y))
                 pygame.draw.line(screen, "White", positions[0], positions[1],LINE_WIDTH)
 
