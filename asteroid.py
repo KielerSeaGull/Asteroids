@@ -8,16 +8,28 @@ class Asteroid(CircleShape):
         # how often can the Astroid split determines the lvl
         self.lvl = self.radius // ASTEROID_MIN_RADIUS
         self.facing_angle: float = random.uniform(0,360)
-        self.num_tips = random.randint(3,8)
+        self.num_tips = random.randint(4,8)
+
+        # Farbverlauf (HSV → RGB)
+        self.hue = random.uniform(0, 360)
+        self.hue_speed = 60.0  # Grad pro Sekunde
+        self.color = pygame.Color(255, 0, 0)
     
     def draw(self, screen):
-        pygame.draw.polygon(screen, "White", self.star(self.num_tips))
-        self._draw_lvl_marks(screen)
+        pygame.draw.polygon(screen, self.color, self.star(self.num_tips), LINE_WIDTH)
+        self._draw_lvl_marks(screen, color = self.color)
     
     def update(self, dt: float):
         self.position += self.velocity * dt 
+
+        # Farbe weiterschieben (HSV)
+        self.hue = (self.hue + self.hue_speed * dt) % 360
+        c = pygame.Color(0, 0, 0)
+        c.hsva = (self.hue, 100, 100, 100)
+        self.color = c
+
     
-    def _draw_lvl_marks(self, screen) -> None:
+    def _draw_lvl_marks(self, screen, color) -> None:
         center_x, center_y = self.position
         lvl = self.get_lvl()
         half_height = (lvl * RENDER_LINE_HIGHT) // 2
@@ -39,8 +51,9 @@ class Asteroid(CircleShape):
             y1 = center_y - half_height
             y2 = center_y + half_height
 
-            pygame.draw.line(screen, "Red", (my_pos_x, y1), (my_pos_x, y2), LINE_WIDTH)
+            pygame.draw.line(screen, color , (my_pos_x, y1), (my_pos_x, y2), LINE_WIDTH)
 
+    #ratio of the classic "golden" five-Star...for the Rest --> Bro just trust me
     def _nice_inner_ratio(self, num_tips:int) -> float:
         return math.sin(math.pi / (2 * num_tips)) / math.sin(3 * math.pi / (2 * num_tips))
 

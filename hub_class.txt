@@ -1,0 +1,97 @@
+Code:
+
+import pygame
+
+class HUD:
+def init(self, screen_width: int, screen_height: int, lives: int = 3, font: pygame.font.Font | None = None):
+self.width = screen_width
+self.height = screen_height
+self.score = 0
+self.lives = lives
+
+    # Layout
+    self.margin = 12
+    self.spacing = 8
+    self.bar_height = 44
+
+    # Farben
+    self.bar_color = (0, 0, 0, 160)   # halbtransparent
+    self.text_color = (255, 255, 255) # weiß
+    self.heart_color = (220, 20, 60)  # „Crimson“
+
+    # Font
+    self.font = font or pygame.font.Font(None, 28)  # Default-Systemfont
+
+    # vorbereiteter Overlay-Surface mit Alpha
+    self.overlay = pygame.Surface((self.width, self.bar_height), pygame.SRCALPHA)
+
+def set_score(self, score: int):
+    self.score = max(0, int(score))
+
+def add_score(self, delta: int):
+    self.set_score(self.score + int(delta))
+
+def set_lives(self, lives: int):
+    self.lives = max(0, int(lives))
+
+def lose_life(self, n: int = 1):
+    self.set_lives(self.lives - n)
+
+def gain_life(self, n: int = 1):
+    self.set_lives(self.lives + n)
+
+def draw(self, screen: pygame.Surface):
+    # Bar neu aufbauen (Alpha-Surface einmal pro Frame neu füllen)
+    self.overlay.fill((0, 0, 0, 0))
+    self.overlay.fill(self.bar_color)
+
+    # Score-Text links
+    score_surf = self.font.render(f"Score: {self.score}", True, self.text_color)
+    score_y = (self.bar_height - score_surf.get_height()) // 2
+    self.overlay.blit(score_surf, (self.margin, score_y))
+
+    # Herzen rechts
+    heart_size = 18  # Breite/Höhe der Herzen
+    total_hearts_w = self.lives * heart_size + max(0, self.lives - 1) * self.spacing
+    start_x = self.width - self.margin - total_hearts_w
+    center_y = self.bar_height // 2
+
+    for i in range(self.lives):
+        x = start_x + i * (heart_size + self.spacing)
+        self._draw_heart(self.overlay, (x, center_y), heart_size, self.heart_color)
+
+    # dünne Trennlinie unten
+    pygame.draw.line(self.overlay, (255, 255, 255, 60), (0, self.bar_height - 1), (self.width, self.bar_height - 1), 1)
+
+    # Overlay oben einblenden
+    screen.blit(self.overlay, (0, 0))
+
+def _draw_heart(self, surf: pygame.Surface, center: tuple[int, int], size: int, color: tuple[int, int, int]):
+    # Einfaches Herz aus zwei Kreisen + Dreieck
+    cx, cy = center
+    r = size // 4
+    left = (cx - r, cy - r)
+    right = (cx + r, cy - r)
+    bottom = (cx, cy + r * 2)
+
+    pygame.draw.circle(surf, color, left, r)
+    pygame.draw.circle(surf, color, right, r)
+    pygame.draw.polygon(surf, color, [(cx - r * 2, cy - r), (cx + r * 2, cy - r), bottom])
+Beispiel-Nutzung im Spiel-Loop:
+
+Nach pygame.init() und der Erstellung des Screens:
+hud = HUD(screen.get_width(), screen.get_height(), lives=3)
+
+Wenn sich Werte ändern:
+hud.add_score(10)      # Punkte erhöhen
+hud.lose_life()        # Leben verlieren
+hud.set_lives(player_lives)  # direkt setzen
+
+Im Render-Teil deines Game-Loops (nach dem Zeichnen der Spielobjekte):
+hud.draw(screen)
+
+Tipps:
+
+Wenn du echte Icons (z.B. kleine Schiffchen) statt Herzen willst, kannst du in _draw_heart eine eigene Mini-Zeichnung oder ein Sprite verwenden.
+Passe font, bar_height und heart_size an deine Auflösung an, damit es sauber skaliert.
+Für internationale Darstellung könntest du „Score“ und „Lives“ noch als Konstanten/Strings verwalten.

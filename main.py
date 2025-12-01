@@ -81,6 +81,23 @@ def main():
                         asteroid.kill()
                     shot.kill()
 
+        for circle in updatable:
+            if isinstance(circle, (Shot, AsteroidField)):
+                continue
+            my_x, my_y = circle.position
+
+            if my_x - circle.radius >= default_screen_size[0]:
+                circle.position[0] = 0
+            elif my_x + circle.radius <= 0:
+                circle.position[0] = default_screen_size[0]
+            if my_y - circle.radius >= default_screen_size[1]:
+                circle.position[1] = 0
+            elif my_y + circle.radius <= 0:
+                circle.position[1] = default_screen_size[1]
+
+
+
+
 
         pygame.display.flip()
 
