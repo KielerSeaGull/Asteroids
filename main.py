@@ -1,6 +1,5 @@
 import pygame
 import sys
-#from constants import SCREEN_HEIGHT, SCREEN_WIDTH
 from logger import log_state, log_event
 from player import *
 from asteroid import Asteroid
@@ -10,97 +9,158 @@ from shot import Shot
 def main():
     pygame.init()
 
-    #Groups
+    # Groups
     updatable = pygame.sprite.Group()
-    drawable =pygame.sprite.Group()
+    drawable = pygame.sprite.Group()
     asteroids = pygame.sprite.Group()
     shots = pygame.sprite.Group()
 
+    # Auto-Registrierung in Gruppen
     Player.containers = (updatable, drawable)
-    Asteroid.containers =(asteroids, updatable, drawable)  
+    Asteroid.containers = (asteroids, updatable, drawable)
     AsteroidField.containers = updatable
     Shot.containers = (shots, updatable, drawable)
 
-    # Fullscreen on second monitor
-    screen = pygame.display.set_mode(
-        (0, 0),
-        pygame.FULLSCREEN,
-        display=0   # <-- change to the monitor index you want
-    )
+    # Fullscreen auf Monitor 0 (ggf. ändern)
+    screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN, display=0)
+    W, H = screen.get_size()
 
-    default_screen_size = screen.get_size()
-    # Load image
-    image = pygame.image.load('assets/background.png')
-    # Scale image
-    scaled_image = pygame.transform.scale(image, default_screen_size)
-    # Blit=> Zeichnet image to the display
-    screen.blit(scaled_image, (0, 0))
-    # Update the display
-    pygame.display.update()
+    # Hintergrund laden
+    bg_img = pygame.image.load('assets/background.png')
+    bg_img = pygame.transform.scale(bg_img, (W, H))
 
-    # Create Player
-    player = Player(default_screen_size[0]/2, default_screen_size[1]/2)   
-    asteroidfield = AsteroidField(default_screen_size[0], default_screen_size[1])
+    # Fonts und UI
+    font = pygame.font.Font(None, 64)
+    font_small = pygame.font.Font(None, 36)
+    restart_rect = pygame.Rect(W // 2 - 220, H // 2 + 20, 200, 54)
+    quit_rect    = pygame.Rect(W // 2 +  20, H // 2 + 20, 200, 54)
 
-    gameclock = pygame.time.Clock()
-    dt: float = 0.0
+    # Game-State
+    game_over = False
 
-    #Game-Loop
+    def start_new_round():
+        # Alles zurücksetzen und neue Objekte erzeugen
+        updatable.empty()
+        drawable.empty()
+        asteroids.empty()
+        shots.empty()
+        p = Player(W / 2, H / 2)
+        af = AsteroidField(W, H)
+        return p, af
+
+    # Erststart
+    player, asteroidfield = start_new_round()
+
+    clock = pygame.time.Clock()
+    dt = 0.0
+
+    # Hilfsfunktion: Screen-Wrapping mit Radius
+    def wrap_with_radius(pos, w, h, r):
+        pos[0] = (pos[0] + r) % (w + 2 * r) - r
+        pos[1] = (pos[1] + r) % (h + 2 * r) - r
+
+    # Game-Loop
     while True:
         log_state()
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                return
-    
-        # wartet 1/60 Sekunde <==> bestcase: 60FPS (Grenze nach oben)
-        #Umrechnung von Millisek -> Sek
-        dt = gameclock.tick(60)/1000
+                pygame.quit()
+                sys.exit()
 
-        #updatet Positionen von allen Objekten
-        updatable.update(dt)
+            # Neustart per Mausklick auf Button
+            if game_over and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if restart_rect.collidepoint(event.pos):
+                    log_event("restart_clicked")
+                    player, asteroidfield = start_new_round()
+                    game_over = False
+                elif quit_rect.collidepoint(event.pos):
+                    log_event("quit_clicked")
+                    pygame.quit()
+                    sys.exit()
 
-         # Hintergrund zeichnen
-        screen.blit(scaled_image, (0, 0))
+            # Optional: Neustart per Taste R
+            if game_over and event.type == pygame.KEYDOWN and event.key == pygame.K_r:
+                log_event("restart_key")
+                player, asteroidfield = start_new_round()
+                game_over = False
 
-        #Rendert die zu rendernden Objekte
+            if game_over and event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                log_event("escape_key")
+                pygame.quit()
+                sys.exit()
+
+        dt = clock.tick(60) / 1000.0
+
+        # Update nur, wenn nicht Game Over (Szene „friert“ ein)
+        if not game_over:
+            updatable.update(dt)
+
+            # Kollisionen
+            player_hit = False
+            for asteroid in list(asteroids):
+                if asteroid.collides_with(player):
+                    log_event("player_hit")
+                    game_over = True
+                    player_hit = True
+                    break
+
+                for shot in list(shots):
+                    if asteroid.collides_with(shot):
+                        log_event("asteroid_shot")
+                        if asteroid.get_lvl() > 1:
+                            log_event("asteroid_split")
+                            asteroid.split()
+                        else:
+                            asteroid.kill()
+                        shot.kill()
+
+            # Wrapping (Modulo), nur für Entities, die wrappen sollen
+            if not player_hit:
+                for circle in updatable:
+                    if isinstance(circle, (Shot, AsteroidField)):
+                        continue
+                    r = getattr(circle, "radius", 0)
+                    wrap_with_radius(circle.position, W, H, r)
+
+        # Render
+        screen.blit(bg_img, (0, 0))
         for sprite in drawable:
             sprite.draw(screen)
-        
-        for asteroid in asteroids:
-            if asteroid.collides_with(player):
-                log_event("player_hit")
-                print("Game over!")
-                sys.exit()
-            for shot in shots:
-                if asteroid.collides_with(shot):
-                    log_event("asteroid_shot")
-                    if asteroid.get_lvl() > 1:
-                        log_event("asteroid_split")
-                        asteroid.split()
-                    else:
-                        asteroid.kill()
-                    shot.kill()
 
-        for circle in updatable:
-            if isinstance(circle, (Shot, AsteroidField)):
-                continue
-            my_x, my_y = circle.position
+        if game_over:
+            # halbtransparentes Overlay
+            overlay = pygame.Surface((W, H), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 170))
+            screen.blit(overlay, (0, 0))
 
-            if my_x - circle.radius >= default_screen_size[0]:
-                circle.position[0] = 0
-            elif my_x + circle.radius <= 0:
-                circle.position[0] = default_screen_size[0]
-            if my_y - circle.radius >= default_screen_size[1]:
-                circle.position[1] = 0
-            elif my_y + circle.radius <= 0:
-                circle.position[1] = default_screen_size[1]
+            # Game Over Text
+            t = font.render("Game Over", True, (255, 255, 255))
+            screen.blit(t, (W // 2 - t.get_width() // 2, H // 2 - 100))
 
+            #Button „Nochmal?“
+            pygame.draw.rect(screen, (240, 240, 240), restart_rect)
+            pygame.draw.rect(screen, (60, 60, 60), restart_rect, 2)
+            label_restart = font_small.render("Nochmal?", True, (0, 0, 0))
+            screen.blit(label_restart, (
+            restart_rect.centerx - label_restart.get_width() // 2,
+            restart_rect.centery - label_restart.get_height() // 2
+            ))
 
+            #Button „Beenden“
+            pygame.draw.rect(screen, (240, 240, 240), quit_rect)
+            pygame.draw.rect(screen, (60, 60, 60), quit_rect, 2)
+            label_quit = font_small.render("Beenden", True, (0, 0, 0))
+            screen.blit(label_quit, (
+            quit_rect.centerx - label_quit.get_width() // 2,
+            quit_rect.centery - label_quit.get_height() // 2
+            ))
 
-
+            # Hinweis auf Taste R
+            hint = font_small.render("Drücke R für Neustart", True, (220, 220, 220))
+            screen.blit(hint, (W // 2 - hint.get_width() // 2, H // 2 + 90))
 
         pygame.display.flip()
-
 
 if __name__ == "__main__":
     main()
